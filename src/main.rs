@@ -4,6 +4,8 @@ use hidapi_rusb::HidError;
 use parse_int::parse;
 use std::{thread::{sleep_ms, sleep}, time::Duration, net::TcpStream, fmt::format, io::Write};
 
+
+
 struct coordinates{
     x:f32,
     y:f32,
@@ -12,6 +14,8 @@ struct coordinates{
     ry:f32,
     rz:f32
 }
+
+
 
 impl coordinates{
     fn new(x:f32,y:f32,z:f32,rx:f32,ry:f32,rz:f32) -> coordinates{
@@ -78,40 +82,49 @@ fn main (){
     
     let devicesss = api.open(vid, pid).unwrap();
     
-    let mut stream = TcpStream::connect("192.168.3.200:30001").unwrap();
-    
+    //let mut stream = TcpStream::connect("192.168.3.200:30001").unwrap();
     
     // Connect to device using its VID and PID
     while true {
         
-        let mut max_axis = 10050.0;
+        let max_axis: f32 = 350.0;
 
-        // Read data from device
         // Read data from device
         let mut buf = [0u8; 256];
-        let res = devicesss.read(&mut buf[..]).unwrap();
-        if buf[0] == 1 { // Significa movimiento de raton
-            let mut x = 0.004*convert_from_2_bytes_to_i16(&buf[1], &buf[2]) / max_axis;
-            let mut y = 0.004*convert_from_2_bytes_to_i16(&buf[3], &buf[4])/ max_axis;
-            let mut z = 0.004*convert_from_2_bytes_to_i16(&buf[5], &buf[6])/ max_axis;
-            let mut rx =0.05*convert_from_2_bytes_to_i16(&buf[7], &buf[8])/ max_axis;
-            let mut ry =0.05*convert_from_2_bytes_to_i16(&buf[9], &buf[10])/ max_axis;
-            let mut rz =0.05*convert_from_2_bytes_to_i16(&buf[11], &buf[12])/ max_axis;
-            let coordinates = coordinates::new(x,y,z,rx,ry,rz);
-            
-            //print!("x: {:#?} y: {:#?} z: {:#?} rx: {:#?} ry: {:#?} rz: {:#?} \n", coordinates.x, coordinates.y, coordinates.z, coordinates.rx, coordinates.ry, coordinates.rz);
-            let mut buffer = [0; 1024];
-            let mut string = format!("sec program():\n{}\nend\n program()\n", coordinates.get_as_register_string());//format!("servoj(get_inverse_kin(pose_trans(get_actual_tcp_pose(), p{}), qnear=get_actual_joint_positions()),0, 0, 1, 0.1, 300)\n" , coordinates.get_string());
-            
-            print!("{}", string);
-            stream.write(string.as_bytes()).unwrap();
-            stream.flush().unwrap();
+        let _ = devicesss.read(&mut buf[..]).unwrap();
 
-        } else if buf[0] == 3 { // Significa click en botones
-        
+        // print buffer as array
+        // println!("Read: {:?}", &buf[..res]);
+
+        if buf[0] == 1 { // Significa movimiento de raton
+            let x:f32 = convert_from_2_bytes_to_i16(&buf[2], &buf[1]) / max_axis;
+            let y:f32 = convert_from_2_bytes_to_i16(&buf[4], &buf[3]) / max_axis;
+            let z:f32 = convert_from_2_bytes_to_i16(&buf[6], &buf[5]) / max_axis;
+            let rx:f32 =convert_from_2_bytes_to_i16(&buf[8], &buf[7]) / max_axis;
+            let ry:f32 =convert_from_2_bytes_to_i16(&buf[10], &buf[9]) / max_axis;
+            let rz:f32 =convert_from_2_bytes_to_i16(&buf[12], &buf[11]) / max_axis;
+            let coordinates = coordinates::new(x,y,z,rx,ry,rz);
+
+
+            
+            print!("x: {:#?} y: {:#?} z: {:#?} rx: {:#?} ry: {:#?} rz: {:#?} \n", coordinates.x, coordinates.y, coordinates.z, coordinates.rx, coordinates.ry, coordinates.rz);
+            // println!("rz: {:#?}", coordinates.rz);
+            let buffer = [0; 1024];
+            //let mut string = format!("sec program():\n{}\nend\n program()\n", coordinates.get_as_register_string());//format!("servoj(get_inverse_kin(pose_trans(get_actual_tcp_pose(), p{}), qnear=get_actual_joint_positions()),0, 0, 1, 0.1, 300)\n" , coordinates.get_string());
+            
+            //print!("{}", string);
+            //stream.write(string.as_bytes()).unwrap();
+            //stream.flush().unwrap();
+
         }
+        if buf[0] == 3 { // Significa click en botones
+            print!("Boton: {:#?} \n", buf[1]);
+        }
+
+    
             
     }
+   
 }
 
     
